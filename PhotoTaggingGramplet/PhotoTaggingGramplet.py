@@ -43,7 +43,6 @@ from gi.repository import GdkPixbuf
 from gi.repository import GObject
 from gi.repository import GExiv2
 
-
 #-------------------------------------------------------------------------
 #
 # gramps modules
@@ -339,7 +338,7 @@ class PhotoTaggingGramplet(Gramplet):
 
         hpaned.pack1(self.selection_widget, resize=True, shrink=False)
 
-        self.treestore = Gtk.TreeStore(int, GdkPixbuf.Pixbuf, str, str)
+        self.treestore = Gtk.TreeStore(int, GdkPixbuf.Pixbuf, str, str, str)
 
         self.treeview = Gtk.TreeView(self.treestore)
         self.treeview.set_size_request(400, -1)
@@ -350,15 +349,18 @@ class PhotoTaggingGramplet(Gramplet):
         column2 = Gtk.TreeViewColumn(_('Preview'))
         column3 = Gtk.TreeViewColumn(_('Person'))
         column4 = Gtk.TreeViewColumn(_('Age'))
+        column5 = Gtk.TreeViewColumn(_('XMP Region Name'))
         self.treeview.append_column(column1)
         self.treeview.append_column(column2)
         self.treeview.append_column(column3)
         self.treeview.append_column(column4)
+        self.treeview.append_column(column5)
 
         cell1 = Gtk.CellRendererText()
         cell2 = Gtk.CellRendererPixbuf()
         cell3 = Gtk.CellRendererText()
         cell4 = Gtk.CellRendererText()
+        cell5 = Gtk.CellRendererText()
         column1.pack_start(cell1, expand=True)
         column1.add_attribute(cell1, 'text', 0)
         column2.pack_start(cell2, expand=True)
@@ -367,6 +369,9 @@ class PhotoTaggingGramplet(Gramplet):
         column3.add_attribute(cell3, 'text', 2)
         column4.pack_start(cell4, expand=True)
         column4.add_attribute(cell4, 'text', 3)
+        column5.pack_start(cell5, expand=True)
+        column5.add_attribute(cell5, 'text', 4)
+
 
         self.treeview.set_search_column(0)
         column1.set_sort_column_id(0)
@@ -556,10 +561,11 @@ class PhotoTaggingGramplet(Gramplet):
                             coords = self.selection_widget.proportional_to_real_rect(rect)
                             region = Region(*coords)
                             region.person = person
+                            region.xmp_person = ""
                             region.mediaref = mediaref
                             self.regions.append(region)
-                            
-   def get_xmp_regions(self, image_path):
+
+    def get_xmp_regions(self, image_path):
         """
         Get named regions from Xmp metadata.
         """
@@ -598,13 +604,14 @@ class PhotoTaggingGramplet(Gramplet):
             rect = (x - (w / 2), y - (h / 2), x + (w / 2), y + (h / 2))
             coords = self.selection_widget.proportional_to_real_rect(rect)
             xmp_region = Region(*coords)
-            
+            xmp_region.xmp_person = name
             # simple check to prevent infinite regions.  If regions are already
-            # defined ignore the XMP regions.  Probably there is a way to compare
+            # defined ingnore the XMP regions.  Probably there is a way to compare
             # and merge the set of regions.  
-
+            #if not xmp_region in self.regions: self.xmp_regions.append(xmp_region)
             if not len(self.regions): self.xmp_regions.append(xmp_region)
             i += 1
+
     # ======================================================
     # managing regions
     # ======================================================
@@ -1019,12 +1026,14 @@ class PhotoTaggingGramplet(Gramplet):
                 name = name_displayer.display(region.person)
                 age = get_person_age(region.person, self.dbstate.db,
                                      self.age_precision)
+                xmp_name = region.xmp_person
             else:
                 name = ""
                 age = ""
+                xmp_name = region.xmp_person
             thumbnail = self.selection_widget.get_thumbnail(
                 region, THUMBNAIL_IMAGE_SIZE)
-            self.treestore.append(None, (i, thumbnail, name, age))
+            self.treestore.append(None, (i, thumbnail, name, age, xmp_name))
 
     def refresh_selection(self):
         current = self.selection_widget.get_current()
