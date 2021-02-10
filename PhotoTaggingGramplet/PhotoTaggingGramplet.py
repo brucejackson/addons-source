@@ -40,6 +40,9 @@ LOG = logging.getLogger(".PhotoTaggingGramplet")
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
+from gi.repository import GObject
+from gi.repository import GExiv2
+
 
 #-------------------------------------------------------------------------
 #
@@ -525,9 +528,12 @@ class PhotoTaggingGramplet(Gramplet):
 
     def load_image(self, media):
         self.regions = []
+        self.xmp_regions = []
         image_path = media_path_full(self.dbstate.db, media.get_path())
         self.selection_widget.load_image(image_path)
         self.retrieve_backrefs()
+        self.get_xmp_regions(image_path)
+        self.regions = self.regions + self.xmp_regions
         self.selection_widget.set_regions(self.regions)
 
     def retrieve_backrefs(self):
@@ -552,7 +558,53 @@ class PhotoTaggingGramplet(Gramplet):
                             region.person = person
                             region.mediaref = mediaref
                             self.regions.append(region)
+                            
+   def get_xmp_regions(self, image_path):
+        """
+        Get named regions from Xmp metadata.
+        """
+        try:
+            metadata = GExiv2.Metadata(image_path)
+        except:
+            return
 
+        region_tag = 'Xmp.mwg-rs.Regions/mwg-rs:RegionList[%s]/'
+        region_name = region_tag + 'mwg-rs:Name'
+        region_type = region_tag + 'mwg-rs:Type'
+        region_x = region_tag + 'mwg-rs:Area/stArea:x'
+        region_y = region_tag + 'mwg-rs:Area/stArea:y'
+        region_w = region_tag + 'mwg-rs:Area/stArea:w'
+        region_h = region_tag + 'mwg-rs:Area/stArea:h'
+        region_unit = region_tag + 'mwg-rs:Area/stArea:unit'
+
+        i = 1
+        while True:
+            name = metadata.get(region_name % i)
+            if name is None:
+                break
+
+            try:
+                x = float(metadata.get(region_x % i)) * 100
+                y = float(metadata.get(region_y % i)) * 100
+                w = float(metadata.get(region_w % i)) * 100
+                h = float(metadata.get(region_h % i)) * 100
+            except ValueError:
+                x = y = 50
+                w = h = 100
+
+            rtype = metadata.get(region_type % i)
+            unit = metadata.get(region_unit % i)
+
+            rect = (x - (w / 2), y - (h / 2), x + (w / 2), y + (h / 2))
+            coords = self.selection_widget.proportional_to_real_rect(rect)
+            xmp_region = Region(*coords)
+            
+            # simple check to prevent infinite regions.  If regions are already
+            # defined ignore the XMP regions.  Probably there is a way to compare
+            # and merge the set of regions.  
+
+            if not len(self.regions): self.xmp_regions.append(xmp_region)
+            i += 1
     # ======================================================
     # managing regions
     # ======================================================
