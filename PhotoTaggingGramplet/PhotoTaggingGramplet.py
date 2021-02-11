@@ -367,12 +367,22 @@ class PhotoTaggingGramplet(Gramplet):
         column2.add_attribute(cell2, 'pixbuf', 1)
         column3.pack_start(cell3, expand=True)
         column3.add_attribute(cell3, 'text', 2)
+        column3.set_resizable(True)
+        column3.set_reorderable(True)
+        column3.set_min_width(20)
         column4.pack_start(cell4, expand=True)
         column4.add_attribute(cell4, 'text', 3)
-        column5.pack_start(cell5, expand=True)
+        column4.set_resizable(True)
+        column4.set_reorderable(True)
+        column4.set_min_width(20)
+        column5.pack_start(cell5, expand=False)
         column5.add_attribute(cell5, 'text', 4)
+        column5.set_resizable(True)
+        column5.set_reorderable(True)
+        column5.set_min_width(20)
+        
 
-
+        
         self.treeview.set_search_column(0)
         column1.set_sort_column_id(0)
         column3.set_sort_column_id(2)
