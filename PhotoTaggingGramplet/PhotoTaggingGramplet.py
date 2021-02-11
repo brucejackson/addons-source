@@ -782,6 +782,7 @@ class PhotoTaggingGramplet(Gramplet):
     def region_modified(self, sender):
         region = self.selection_widget.get_current()
         person = region.person
+        xmp_person = region.xmp_person
         mediaref = region.mediaref
         if person and mediaref:
             selection = self.selection_widget.get_selection()
@@ -957,6 +958,7 @@ class PhotoTaggingGramplet(Gramplet):
         region.person = person
         region.mediaref = mediaref
 
+
     def clear_ref(self, region):
         if region:
             if region.person:
@@ -1037,10 +1039,17 @@ class PhotoTaggingGramplet(Gramplet):
                 age = get_person_age(region.person, self.dbstate.db,
                                      self.age_precision)
                 xmp_name = region.xmp_person
-            else:
+
+            elif hasattr(region, 'xmp_person'):
                 name = ""
                 age = ""
                 xmp_name = region.xmp_person
+            
+            else: 
+                name = ""
+                age = ""
+                xmp_name = ""
+
             thumbnail = self.selection_widget.get_thumbnail(
                 region, THUMBNAIL_IMAGE_SIZE)
             self.treestore.append(None, (i, thumbnail, name, age, xmp_name))
